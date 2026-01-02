@@ -244,20 +244,6 @@ body {
   to { opacity: 1; transform: translateX(0); }
 }
 
-.question-number {
-  display: inline-block;
-  background: var(--primary);
-  color: white;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  text-align: center;
-  line-height: 36px;
-  font-weight: 700;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 8px rgba(108, 99, 255, 0.3);
-}
-
 .question-text {
   font-size: 1.3rem;
   font-weight: 600;
@@ -338,6 +324,12 @@ body {
   color: white;
   font-weight: bold;
   font-size: 14px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .answer-btn.correct {
@@ -594,6 +586,19 @@ body {
     padding: 18px 18px 18px 56px;
   }
   
+  .answer-btn::before {
+    left: 18px;
+    width: 22px;
+    height: 22px;
+  }
+  
+  .answer-btn.selected::after {
+    left: 18px;
+    width: 22px;
+    height: 22px;
+    font-size: 13px;
+  }
+  
   .score-display {
     font-size: 3.5rem;
   }
@@ -674,7 +679,6 @@ body {
 
   <div id="content">
     <div class="question-card">
-      <div class="question-number">1</div>
       <div class="question-text" id="questionText">Loading question...</div>
     </div>
     
@@ -815,7 +819,6 @@ function showQuestion() {
   
   // Создание кнопок ответов
   answersGridEl.innerHTML = '';
-  const letters = ['A', 'B', 'C', 'D'];
   
   question.a.forEach((answer, index) => {
     const button = document.createElement('button');
@@ -829,6 +832,7 @@ function showQuestion() {
   // Установка кнопки Next в неактивное состояние
   nextBtnEl.classList.remove('active');
   nextBtnEl.disabled = true;
+  nextBtnEl.innerHTML = 'Next Question <span style="margin-left: 8px;">→</span>';
   
   updateStats();
 }
