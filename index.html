@@ -318,6 +318,28 @@ body {
   transform: translateY(-1px);
 }
 
+.answer-btn.selected {
+  background: rgba(108, 99, 255, 0.1);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.answer-btn.selected::before {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.answer-btn.selected::after {
+  content: '✓';
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+}
+
 .answer-btn.correct {
   background: rgba(76, 175, 80, 0.1);
   border-color: var(--success);
@@ -356,11 +378,30 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
-  display: none;
   position: relative;
   z-index: 2;
   overflow: hidden;
   box-shadow: 0 8px 25px rgba(108, 99, 255, 0.3);
+  opacity: 0.5;
+}
+
+.next-btn.active {
+  opacity: 1;
+}
+
+.next-btn.active:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(108, 99, 255, 0.4);
+}
+
+.next-btn.active:active {
+  transform: translateY(-1px);
+}
+
+.next-btn:disabled {
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: 0 8px 25px rgba(108, 99, 255, 0.3) !important;
 }
 
 .next-btn::after {
@@ -384,21 +425,6 @@ body {
 @keyframes ripple {
   0% { transform: scale(0, 0); opacity: 0.5; }
   100% { transform: scale(20, 20); opacity: 0; }
-}
-
-.next-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 30px rgba(108, 99, 255, 0.4);
-}
-
-.next-btn:active {
-  transform: translateY(-1px);
-}
-
-.next-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none !important;
 }
 
 /* Результаты */
@@ -656,7 +682,7 @@ body {
       <div class="loading"></div>
     </div>
     
-    <button class="next-btn" id="nextBtn" onclick="nextQuestion()">
+    <button class="next-btn" id="nextBtn" onclick="handleNextButton()">
       Next Question <span style="margin-left: 8px;">→</span>
     </button>
   </div>
@@ -720,6 +746,8 @@ let currentQuestion = 0;
 let score = 0;
 let timeLeft = 45 * 60;
 let timerInterval;
+let selectedAnswer = null;
+let isAnswerChecked = false;
 
 // Элементы DOM
 const questionCounterEl = document.getElementById('questionCounter');
@@ -774,6 +802,10 @@ function updateStats() {
 function showQuestion() {
   const question = questions[currentQuestion];
   
+  // Сброс состояния
+  selectedAnswer = null;
+  isAnswerChecked = false;
+  
   // Анимация исчезновения
   questionTextEl.style.opacity = 0;
   setTimeout(() => {
@@ -794,51 +826,78 @@ function showQuestion() {
     answersGridEl.appendChild(button);
   });
   
-  nextBtnEl.style.display = 'none';
+  // Установка кнопки Next в неактивное состояние
+  nextBtnEl.classList.remove('active');
   nextBtnEl.disabled = true;
   
   updateStats();
 }
 
 // Выбор ответа
-function selectAnswer(selectedIndex, button) {
-  const question = questions[currentQuestion];
-  const answerButtons = document.querySelectorAll('.answer-btn');
+function selectAnswer(index, button) {
+  if (isAnswerChecked) return;
   
-  // Отключаем все кнопки
+  // Убираем выделение с других кнопок
+  const answerButtons = document.querySelectorAll('.answer-btn');
   answerButtons.forEach(btn => {
-    btn.disabled = true;
-    btn.style.pointerEvents = 'none';
+    btn.classList.remove('selected');
   });
   
-  // Задержка для интриги
-  setTimeout(() => {
-    // Помечаем правильный ответ
-    answerButtons[question.c].classList.add('correct');
-    
-    // Если ответ неправильный, показываем ошибку
-    if (selectedIndex !== question.c) {
-      button.classList.add('wrong');
-    } else {
-      score++;
-      scoreValueEl.textContent = score;
-    }
-    
-    // Показываем кнопку Next
-    nextBtnEl.style.display = 'block';
-    nextBtnEl.disabled = false;
-    nextBtnEl.focus();
-  }, 500);
+  // Выделяем выбранную кнопку
+  button.classList.add('selected');
+  selectedAnswer = index;
+  
+  // Активируем кнопку Next
+  nextBtnEl.classList.add('active');
+  nextBtnEl.disabled = false;
 }
 
-// Следующий вопрос
-function nextQuestion() {
-  currentQuestion++;
-  
-  if (currentQuestion < questions.length) {
-    showQuestion();
-  } else {
-    finishTest();
+// Обработка кнопки Next
+function handleNextButton() {
+  if (!isAnswerChecked && selectedAnswer !== null) {
+    // Проверка ответа
+    const question = questions[currentQuestion];
+    const answerButtons = document.querySelectorAll('.answer-btn');
+    
+    // Отключаем все кнопки ответов
+    answerButtons.forEach(btn => {
+      btn.disabled = true;
+      btn.style.pointerEvents = 'none';
+    });
+    
+    // Задержка для интриги
+    setTimeout(() => {
+      // Помечаем правильный ответ
+      answerButtons[question.c].classList.add('correct');
+      
+      // Если ответ неправильный, показываем ошибку
+      if (selectedAnswer !== question.c) {
+        answerButtons[selectedAnswer].classList.add('wrong');
+      } else {
+        score++;
+        scoreValueEl.textContent = score;
+      }
+      
+      isAnswerChecked = true;
+      
+      // Изменяем кнопку Next для перехода к следующему вопросу
+      if (currentQuestion < questions.length - 1) {
+        nextBtnEl.innerHTML = 'Next Question <span style="margin-left: 8px;">→</span>';
+      } else {
+        nextBtnEl.innerHTML = 'See Results <span style="margin-left: 8px;">📊</span>';
+      }
+      
+      // Разблокируем кнопку Next для перехода
+      nextBtnEl.disabled = false;
+    }, 500);
+  } else if (isAnswerChecked) {
+    // Переход к следующему вопросу или завершение теста
+    currentQuestion++;
+    if (currentQuestion < questions.length) {
+      showQuestion();
+    } else {
+      finishTest();
+    }
   }
 }
 
@@ -945,17 +1004,24 @@ document.addEventListener('mouseup', function(e) {
 
 // Добавляем поддержку клавиатуры
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter' && !nextBtnEl.disabled && nextBtnEl.style.display !== 'none') {
-    nextQuestion();
+  // Enter для кнопки Next
+  if (e.key === 'Enter' && !nextBtnEl.disabled && nextBtnEl.classList.contains('active')) {
+    handleNextButton();
   }
   
   // Выбор ответов цифрами 1-4
   if (e.key >= '1' && e.key <= '4') {
     const index = parseInt(e.key) - 1;
     const buttons = document.querySelectorAll('.answer-btn');
-    if (buttons[index] && !buttons[index].disabled) {
+    if (buttons[index] && !isAnswerChecked) {
       buttons[index].click();
     }
+  }
+  
+  // Пробел для выбора/отмены выбора
+  if (e.key === ' ' && selectedAnswer !== null) {
+    e.preventDefault();
+    handleNextButton();
   }
 });
 </script>
